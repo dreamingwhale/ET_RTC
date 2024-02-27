@@ -28,7 +28,7 @@ void ASignalServer::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 
 }
-
+/*
 void JoinRoom(FString roomName)
 {
 	SocketIOClientCompoent->Emit("join_room", roomName);
@@ -48,3 +48,4 @@ void Candidate(RTCIceCandidate.candidate candidate, FString roomName)
 {
 	SocketIOClientCompoent->Emit("candidate", candidate, roomName);
 }
+*/

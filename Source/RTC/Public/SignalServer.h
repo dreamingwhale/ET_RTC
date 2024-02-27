@@ -27,7 +27,7 @@ protected:
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
-
+	/*
 public:
 	USocketIOClientComponent* SocketIOClientCompoent;
 
@@ -36,4 +36,5 @@ public:
 	void Offer(sdp::SessionDescription offer, FString roomName);
 	void Answer(sdp::SessionDescription answer, FString roomName);
 	void Candidate(candidate candidate, FString roomName);
+	*/
 };

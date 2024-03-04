@@ -50,8 +50,6 @@ struct IceCandidate
 };
 
 
-class USocketIOClientComponent;
-
 
 UCLASS()
 class RTC_API ASDP: public AActor
@@ -80,4 +78,8 @@ public:
 	void Candidate(IceCandidate candidate, FString roomName);
 	USIOJsonValue* ConvertSessionDescriptionToSIOJsonValue(const SessionDescription& SessionDesc);
 	USIOJsonValue* IceCandidateToSIOJsonValue(const IceCandidate& Candidate);
+
+public:
+	void OnConnectionFail();
+
 };

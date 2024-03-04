@@ -10,20 +10,18 @@ ASDP::ASDP()
 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
-
 	siocc = CreateDefaultSubobject<USocketIOClientComponent>(TEXT("SocketIOClientComponent"));
-	if (siocc != nullptr) {
-		//siocc->Connect(TEXT("ws://ec2-13-125-143-170.ap-northeast-2.compute.amazonaws.com:3000"));
-		UE_LOG(LogTemp, Warning, TEXT("Connected"));
-		UE_LOG(LogTemp, Warning, TEXT("%s"), siocc);
-	}
+	
 }
 
 // Called when the game starts or when spawned
 void ASDP::BeginPlay()
 {
 	Super::BeginPlay();
-
+	if (siocc != nullptr) {
+		siocc->Connect(TEXT("ws://ec2-13-125-143-170.ap-northeast-2.compute.amazonaws.com:3000"));
+		UE_LOG(LogTemp, Warning, TEXT("Connected"));
+	}
 }
 
 // Called every frame
@@ -107,4 +105,9 @@ USIOJsonValue* ASDP::IceCandidateToSIOJsonValue(const IceCandidate& Candidate)
 	JsonObject->SetStringField(TEXT("Type"), Candidate.Type);
 
 	return USIOJsonValue::ConstructJsonValueObject(JsonObject, this);
+}
+
+void ASDP::OnConnectionFail()
+{
+	UE_LOG(LogTemp, Warning, TEXT("SocketIO connection failed."));
 }

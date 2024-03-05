@@ -11,6 +11,8 @@ ASDP::ASDP()
 	PrimaryActorTick.bCanEverTick = true;
 
 	siocc = CreateDefaultSubobject<USocketIOClientComponent>(TEXT("SocketIOClientComponent"));
+	SIOConnectParams.AddressAndPort = TEXT("ws://ec2-13-125-143-170.ap-northeast-2.compute.amazonaws.com:3000");
+	siocc->URLParams = SIOConnectParams;
 	
 }
 
@@ -18,10 +20,6 @@ ASDP::ASDP()
 void ASDP::BeginPlay()
 {
 	Super::BeginPlay();
-	if (siocc != nullptr) {
-		siocc->Connect(TEXT("ws://ec2-13-125-143-170.ap-northeast-2.compute.amazonaws.com:3000"));
-		UE_LOG(LogTemp, Warning, TEXT("Connected"));
-	}
 }
 
 // Called every frame

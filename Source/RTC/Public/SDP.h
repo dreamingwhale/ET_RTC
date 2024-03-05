@@ -69,7 +69,11 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 public:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RTC")
 	USocketIOClientComponent* siocc;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RTC")
+	FSIOConnectParams SIOConnectParams;
 
 public:
 	void JoinRoom(FString roomName);

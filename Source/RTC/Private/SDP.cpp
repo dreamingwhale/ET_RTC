@@ -26,7 +26,7 @@ void ASDP::BeginPlay()
 		{
 			FSessionDescription sdp;
 			UE_LOG(LogTemp, Warning, TEXT("Received: %s"), *USIOJConvert::ToJsonString(usersInThisRoom));
-			Offer(TEXT("1234"),TEXT("abc@naver.com"),sdp, TEXT("1234"));
+			Offer(TEXT("abc@naver.com"),sdp);
 		});
 	Super::BeginPlay();
 }
@@ -43,7 +43,7 @@ void ASDP::JoinRoom(FString roomName, FString email)
 	siocc->EmitNative(TEXT("join_room"), ConvertDataToJsonObject(roomName, email));
 }
 
-void ASDP::Offer(FString offerSendID, FString offerSendEmail, FSessionDescription sdp, FString offerReceiveID)
+void ASDP::Offer( FString offerSendEmail, FSessionDescription sdp)
 {
 	UE_LOG(LogTemp, Warning, TEXT("Offer"));
 	siocc->EmitNative(TEXT("offer"), ConvertOfferDataToJsonObject(FString::FromInt(siocc->GetUniqueID()),offerSendEmail, sdp, siocc->SocketId));

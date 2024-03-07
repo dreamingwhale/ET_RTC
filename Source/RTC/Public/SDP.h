@@ -98,7 +98,7 @@ public:
 	void JoinRoom(FString roomName, FString email);
 
 	UFUNCTION(BlueprintCallable, Category = "RTC")
-	void Offer(FString offerSendID, FString offerSendEmail, FSessionDescription sdp, FString offerReceiveID);
+	void Offer(FString offerSendEmail, FSessionDescription sdp);
 
 	UFUNCTION(BlueprintCallable, Category = "RTC")
 	void Answer(FString answerSendID, FSessionDescription sdp, FString answerReceiveID);

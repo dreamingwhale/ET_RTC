@@ -3,6 +3,7 @@
 
 #include "SDP.h"
 #include "SocketIOClientComponent.h"
+#include "Windows.h"
 
 // Sets default values
 ASDP::ASDP()
@@ -13,12 +14,20 @@ ASDP::ASDP()
 	siocc = CreateDefaultSubobject<USocketIOClientComponent>(TEXT("SocketIOClientComponent"));
 	SIOConnectParams.AddressAndPort = TEXT("ws://ec2-13-125-143-170.ap-northeast-2.compute.amazonaws.com:3000");
 	siocc->URLParams = SIOConnectParams;
-	
+
 }
 
 // Called when the game starts or when spawned
 void ASDP::BeginPlay()
 {
+	//위치를 바꿀 필요가 있음.
+	siocc->OnNativeEvent(TEXT("all_users")
+		, [this](const FString& Event, const TSharedPtr<FJsonValue>& usersInThisRoom)
+		{
+			FSessionDescription sdp;
+			UE_LOG(LogTemp, Warning, TEXT("Received: %s"), *USIOJConvert::ToJsonString(usersInThisRoom));
+			Offer(TEXT("1234"),TEXT("abc@naver.com"),sdp, TEXT("1234"));
+		});
 	Super::BeginPlay();
 }
 
@@ -29,27 +38,74 @@ void ASDP::Tick(float DeltaTime)
 
 }
 
-void ASDP::JoinRoom(FString roomName)
+void ASDP::JoinRoom(FString roomName, FString email)
 {
-	siocc->EmitNative("join_room", roomName);
+	siocc->EmitNative(TEXT("join_room"), ConvertDataToJsonObject(roomName, email));
 }
 
-void ASDP::Offer(SessionDescription offer, FString roomName)
+void ASDP::Offer(FString offerSendID, FString offerSendEmail, FSessionDescription sdp, FString offerReceiveID)
 {
-	siocc->Emit("offer", ConvertSessionDescriptionToSIOJsonValue(offer), roomName);
+	UE_LOG(LogTemp, Warning, TEXT("Offer"));
+	siocc->EmitNative(TEXT("offer"), ConvertOfferDataToJsonObject(FString::FromInt(siocc->GetUniqueID()),offerSendEmail, sdp, siocc->SocketId));
 }
 
-void ASDP::Answer(SessionDescription answer, FString roomName)
+void ASDP::Answer(FString answerSendID, FSessionDescription sdp, FString answerReceiveID)
 {
-	siocc->Emit("answer", ConvertSessionDescriptionToSIOJsonValue(answer), roomName);
+	UE_LOG(LogTemp, Warning, TEXT("Answer"));
+	siocc->EmitNative(TEXT("answer"), ConvertAnswerDataToJsonObject(answerSendID, sdp, answerReceiveID));
 }
 
-void ASDP::Candidate(IceCandidate candidate, FString roomName)
+void ASDP::Candidate(FString candidateSendID, FIceCandidate candidate, FString candidateReceiveID)
 {
-	siocc->Emit("candidate", IceCandidateToSIOJsonValue(candidate), roomName);
+	UE_LOG(LogTemp, Warning, TEXT("Candidate"));
+	siocc->EmitNative(TEXT("candidate"), ConvertCandidateDataToJsonObject(candidateSendID,candidate, candidateReceiveID));
+
 }
 
-USIOJsonValue* ASDP::ConvertSessionDescriptionToSIOJsonValue(const SessionDescription& SessionDesc)
+void ASDP::PrintOnNativeEvent()
+{
+	siocc->OnNativeEvent(TEXT("getOffer")
+		, [this](const FString& Event, const TSharedPtr<FJsonValue>& data)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Get Offer: %s"), *USIOJConvert::ToJsonString(data));
+			GetOffer();
+		});
+	siocc->OnNativeEvent(TEXT("getAnswer")
+		, [](const FString& Event, const TSharedPtr<FJsonValue>& data)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Get Answer: %s"), *USIOJConvert::ToJsonString(data));
+		});
+
+	siocc->OnNativeEvent(TEXT("getCandidate")
+		, [](const FString& Event, const TSharedPtr<FJsonValue>& data)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Get Candidate: %s"), *USIOJConvert::ToJsonString(data));
+		});
+}
+
+void ASDP::GetOffer()
+{
+	FSessionDescription sdp;
+	UE_LOG(LogTemp, Warning, TEXT("Get Offer"));
+	Answer("offerSendID", sdp, "offerReceiveID");
+}
+
+void ASDP::GetAnswer()
+{
+	UE_LOG(LogTemp, Warning, TEXT("Get Answer"));
+}
+
+void ASDP::GetCandidate()
+{
+	UE_LOG(LogTemp, Warning, TEXT("Get Candidate"));
+}
+
+void ASDP::GetUsersInThisRoom()
+{
+	UE_LOG(LogTemp, Warning, TEXT("GetUsersInThisRoom"));
+}
+
+USIOJsonValue* ASDP::ConvertSessionDescriptionToSIOJsonValue(const FSessionDescription& SessionDesc)
 {
 	// 새로운 JSON 객체 생성
 	USIOJsonObject* JsonObject = NewObject<USIOJsonObject>();
@@ -85,7 +141,7 @@ USIOJsonValue* ASDP::ConvertSessionDescriptionToSIOJsonValue(const SessionDescri
 	return USIOJsonValue::ConstructJsonValueObject(JsonObject, this);
 }
 
-USIOJsonValue* ASDP::IceCandidateToSIOJsonValue(const IceCandidate& Candidate)
+USIOJsonValue* ASDP::IceCandidateToSIOJsonValue(const FIceCandidate& Candidate)
 {
 	// 새로운 JSON 객체 생성
 	USIOJsonObject* JsonObject = NewObject<USIOJsonObject>();
@@ -103,6 +159,75 @@ USIOJsonValue* ASDP::IceCandidateToSIOJsonValue(const IceCandidate& Candidate)
 	JsonObject->SetStringField(TEXT("Type"), Candidate.Type);
 
 	return USIOJsonValue::ConstructJsonValueObject(JsonObject, this);
+}
+
+TSharedPtr<FJsonObject> ASDP::ConvertDataToJsonObject(FString roomName, FString email)
+{
+	TSharedPtr<FJsonObject> JsonObject = USIOJConvert::MakeJsonObject();
+	JsonObject->SetStringField(TEXT("room"), roomName);
+	JsonObject->SetStringField(TEXT("email"), email);
+	return JsonObject;
+}
+
+TSharedPtr<FJsonObject> ASDP::ConvertOfferDataToJsonObject(FString offerSendID, FString offerSendEmail, FSessionDescription sdp, FString offerReceiveID)
+{
+	TSharedPtr<FJsonObject> JsonObject = USIOJConvert::MakeJsonObject();
+	JsonObject->SetObjectField(TEXT("sdp"), ConvertSessionDescriptionToJsonObject(sdp));
+	JsonObject->SetStringField(TEXT("offerSendID"), offerSendID);
+	JsonObject->SetStringField(TEXT("offerSendEmail"), offerSendEmail);
+	JsonObject->SetStringField(TEXT("offerReceiveID"), offerReceiveID);
+	return JsonObject;
+}
+
+TSharedPtr<FJsonObject> ASDP::ConvertAnswerDataToJsonObject(FString answerSendID, FSessionDescription sdp, FString answerReceiveID)
+{
+	TSharedPtr<FJsonObject> JsonObject = USIOJConvert::MakeJsonObject();
+	JsonObject->SetStringField(TEXT("answerSendID"), answerSendID);
+	JsonObject->SetObjectField(TEXT("sdp"), ConvertSessionDescriptionToJsonObject(sdp));
+	JsonObject->SetStringField(TEXT("answerReceiveID"), answerReceiveID);
+	return JsonObject;
+}
+
+TSharedPtr<FJsonObject> ASDP::ConvertCandidateDataToJsonObject(FString candidateSendID, FIceCandidate candidate, FString candidateReceiveID)
+{
+	TSharedPtr<FJsonObject> JsonObject = USIOJConvert::MakeJsonObject();
+	JsonObject->SetStringField(TEXT("candidateSendID"), candidateSendID);
+	JsonObject->SetObjectField(TEXT("candidate"), ConvertCandidateToJsonObject(candidate));
+	JsonObject->SetStringField(TEXT("candidateReceiveID"), candidateReceiveID);
+	return JsonObject;
+}
+
+TSharedPtr<FJsonObject> ASDP::ConvertSessionDescriptionToJsonObject(FSessionDescription sdp)
+{
+	TSharedPtr<FJsonObject> JsonObject = USIOJConvert::MakeJsonObject();
+	sdp.v = 0;
+	sdp.o = TEXT("o");
+	sdp.s = TEXT("s");
+	sdp.c = TEXT("c");
+	sdp.t = TEXT("t");
+	
+	JsonObject->SetNumberField(TEXT("v"), sdp.v);
+	JsonObject->SetStringField(TEXT("o"), sdp.o);
+	JsonObject->SetStringField(TEXT("s"), sdp.s);
+	JsonObject->SetStringField(TEXT("c"), sdp.c);
+	JsonObject->SetStringField(TEXT("t"), sdp.t);
+	return JsonObject;
+}
+
+TSharedPtr<FJsonObject> ASDP::ConvertCandidateToJsonObject(FIceCandidate& Candidate)
+{
+	TSharedPtr<FJsonObject> JsonObject = USIOJConvert::MakeJsonObject();
+	JsonObject->SetStringField(TEXT("Candidate"), Candidate.Candidate);
+	JsonObject->SetStringField(TEXT("SdpMid"), Candidate.SdpMid);
+	JsonObject->SetNumberField(TEXT("SdpMLineIndex"), Candidate.SdpMLineIndex);
+	JsonObject->SetStringField(TEXT("Foundation"), Candidate.Foundation);
+	JsonObject->SetNumberField(TEXT("Component"), Candidate.Component);
+	JsonObject->SetStringField(TEXT("Protocol"), Candidate.Protocol);
+	JsonObject->SetNumberField(TEXT("Priority"), Candidate.Priority);
+	JsonObject->SetStringField(TEXT("Address"), Candidate.Address);
+	JsonObject->SetNumberField(TEXT("Port"), Candidate.Port);
+	JsonObject->SetStringField(TEXT("Type"), Candidate.Type);
+	return JsonObject;
 }
 
 void ASDP::OnConnectionFail()

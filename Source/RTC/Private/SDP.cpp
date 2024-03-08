@@ -33,7 +33,6 @@ void ASDP::BeginPlay()
 			if (!FJsonSerializer::Deserialize(JsonReader, JsonParsed))
 			{
 				UE_LOG(LogTemp, Warning, TEXT("!FJsonSerialize"));
-				UE_LOG(LogTemp, Warning, TEXT("JsonParsed: %s"), *USIOJConvert::ToJsonString(JsonParsed));
 			}
 			if (!JsonParsed.IsEmpty())
 			{
@@ -55,10 +54,6 @@ void ASDP::BeginPlay()
 						}
 
 					}
-					else
-					{
-						UE_LOG(LogTemp, Warning, TEXT("Send Offer Failed"));
-					}
 				}
 
 			}
@@ -72,48 +67,42 @@ void ASDP::BeginPlay()
 			UE_LOG(LogTemp, Warning, TEXT("Get Offer: %s"), *USIOJConvert::ToJsonString(data));
 
 			TSharedPtr<FJsonValue> JsonValue;
-			TArray<TSharedPtr<FJsonValue>> JsonParsed;
+			//TArray<TSharedPtr<FJsonValue>> JsonParsed;
 			TSharedRef<TJsonReader<>> JsonReader = TJsonReaderFactory<>::Create(*USIOJConvert::ToJsonString(data));
-			if (!FJsonSerializer::Deserialize(JsonReader, JsonParsed))
+			if (!FJsonSerializer::Deserialize(JsonReader, JsonValue))
 			{
 				UE_LOG(LogTemp, Warning, TEXT("!FJsonSerialize"));
-				UE_LOG(LogTemp, Warning, TEXT("JsonParsed: %s"), *USIOJConvert::ToJsonString(JsonParsed));
 			}
-			if (!JsonParsed.IsEmpty())
+			if (JsonValue!=nullptr)
 			{
-				
-				for (int i = 0; i < JsonParsed.Num(); i++)
+				TSharedPtr<FJsonObject> JsonObject = JsonValue->AsObject();
+				FString IdValue;
+				UE_LOG(LogTemp, Warning, TEXT("FJsonObject : %s"), *USIOJConvert::ToJsonString(JsonObject));
+				if (JsonObject->TryGetStringField("offerSendID", IdValue))
 				{
-					TSharedPtr<FJsonObject> JsonObject = JsonParsed[i]->AsObject();
-					FString IdValue;
+					auto AnswerJsonObject = USIOJConvert::MakeJsonObject();
+					UE_LOG(LogTemp, Warning, TEXT("IdValue: %s"), *IdValue);
 
-					if (JsonObject->TryGetStringField("offerSendID", IdValue))
+					//JsonObject->TryGetObjectField(TEXT("sdp"), sdp);	//sdp를 어떻게 받아올지 고민해봐야함. 임시로 빈값으로 넣어둠.
+					FSessionDescription sdp;
+					AnswerJsonObject->SetObjectField(TEXT("sdp"), ConvertSessionDescriptionToJsonObject(sdp));
+					AnswerJsonObject->SetStringField(TEXT("answerSendID"), siocc->SocketId);
+					AnswerJsonObject->SetStringField(TEXT("answerReceiveID"), *IdValue);
+					if (IdValue != siocc->SocketId)
 					{
-						auto AnswerJsonObject = USIOJConvert::MakeJsonObject();
-						UE_LOG(LogTemp, Warning, TEXT("IdValue: %s"), *IdValue);
-						
-						//JsonObject->TryGetObjectField(TEXT("sdp"), sdp);	//sdp를 어떻게 받아올지 고민해봐야함. 임시로 빈값으로 넣어둠.
-						FSessionDescription sdp;
-						AnswerJsonObject->SetObjectField(TEXT("sdp"), ConvertSessionDescriptionToJsonObject(sdp));
-						AnswerJsonObject->SetStringField(TEXT("answerSendID"), siocc->SocketId);
-						AnswerJsonObject->SetStringField(TEXT("answerReceiveID"), *IdValue);
-						if (IdValue != siocc->SocketId)
-						{
-							Answer(AnswerJsonObject);
-						}
+						Answer(AnswerJsonObject);
+					}
 
-					}
-					else
-					{
-						UE_LOG(LogTemp, Warning, TEXT("Send Answer Failed"));
-					}
 				}
-				
+				else
+				{
+					UE_LOG(LogTemp, Warning, TEXT("Send Answer Failed"));
+				}
 			}
-			else
-			{
-				UE_LOG(LogTemp, Warning, TEXT("JsonParsed is Empty"));
-			}
+
+
+
+
 		});
 
 	siocc->OnNativeEvent(TEXT("getAnswer")

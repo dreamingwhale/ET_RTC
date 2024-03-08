@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "Dom/JsonObject.h"
 #include "SocketIOClientComponent.h"
 #include "SDP.generated.h"
 
@@ -97,11 +98,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "RTC")
 	void JoinRoom(FString roomName, FString email);
 
-	UFUNCTION(BlueprintCallable, Category = "RTC")
-	void Offer(FString offerSendEmail, FSessionDescription sdp);
-
-	UFUNCTION(BlueprintCallable, Category = "RTC")
-	void Answer(FString answerSendID, FSessionDescription sdp, FString answerReceiveID);
+	void Offer(TSharedPtr<FJsonObject> JsonObject);
+	
+	void Answer(TSharedPtr<FJsonObject> JsonObject);
 
 	UFUNCTION(BlueprintCallable, Category = "RTC")
 	void Candidate(FString candidateSendID, FIceCandidate candidate, FString candidateReceiveID);
@@ -118,7 +117,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "RTC")
 	void GetCandidate();
 public:
-	void GetUsersInThisRoom();
 	USIOJsonValue* ConvertSessionDescriptionToSIOJsonValue(const FSessionDescription& SessionDesc);
 	USIOJsonValue* IceCandidateToSIOJsonValue(const FIceCandidate& Candidate);
 	TSharedPtr<FJsonObject> ConvertDataToJsonObject(FString roomName, FString email);
